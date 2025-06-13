@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你的星来了!</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #ffebf3; /* 淡粉红色 */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        
+        .cat-image {
+            width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 20px; /* 初始间距 */
+            align-items: center;
+        }
+        
+        .button {
+            padding: 15px 30px;
+            font-size: 18px;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .yes {
+            background-color: #ff6b81; /* 粉红色 */
+        }
+        
+        .no {
+            background-color: #70a1ff; /* 蓝色 */
+        }
+        
+        .hidden {
+            display: none; /* 初始隐藏 */
+        }
+        
+        .final-image {
+            width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        
+        .final-message {
+            font-size: 24px;
+            color: #333;
+        }
+
+        #muteButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        /* 加载提示样式 */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 235, 243, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+        
+        #loadingOverlay button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            background-color: #ff6b81;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        #loadingOverlay button:hover {
+            background-color: #ff4d71;
+        }
+    </style>
+</head>
+<body>
+    <!-- 添加音频元素 -->
+    <audio id="backgroundMusic" loop>
+        <source src="Star-Audio.mp3" type="audio/mpeg">
+        <!-- 如果需要支持其他格式，可以添加更多 <source> 标签 -->
+        你的浏览器不支持音频播放。
+    </audio>
+
+    <!-- 关闭音频按钮 -->
+    <button id="muteButton">关闭音频</button>
+
+    <!-- 加载提示层 -->
+    <div id="loadingOverlay">
+        <img src="images/letter1.png" alt="小猫" style="width: 300px; height: auto;">
+        <button id="startButton" style="white-space: pre-line;">ding~ 
+沈星回发来一条信息 
+请注意查收❤</button>
+    </div>
+
+    <!-- 主页面内容 -->
+    <div id="mainContent">
+        <img src="images/cat.png" alt="小猫" class="cat-image" id="catImage">
+        <div class="message">可以成为我的恋人吗？</div>
+        <div class="buttons">
+            <button class="button yes" id="yesButton">可以</button>
+            <button class="button no" id="noButton">不要</button>
+        </div>
+    </div>
+    
+    <!-- “喜欢你”页面内容 -->
+    <div id="yesContent" class="hidden">
+        <img src="images/cat-yes.png" alt="小猫" class="final-image">
+        <div class="final-message">喜欢你！！！</div>
+    </div>
+    
+    <!-- “可是我喜欢你啊”页面内容 -->
+    <div id="confessionContent" class="hidden">
+        <img src="images/love.png" alt="表白图片" class="final-image">
+        <div class="final-message">可是我喜欢你啊</div>
+    </div>
+    
+    <script>
+        const mainContent = document.getElementById('mainContent');
+        const yesContent = document.getElementById('yesContent');
+        const confessionContent = document.getElementById('confessionContent');
+        const yesButton = document.getElementById('yesButton');
+        const noButton = document.getElementById('noButton');
+        const buttonsContainer = document.querySelector('.buttons');
+        const catImage = document.getElementById('catImage');
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const muteButton = document.getElementById('muteButton');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const startButton = document.getElementById('startButton');
+        
+        let clickCount = 0; // 记录点击次数
+        const maxClicks = 5; // 最大点击次数
+        let imageIndex = 0; // 图片索引
+        let isMusicPlaying = false; // 音乐播放状态
+        
+        // 页面加载后尝试自动播放音乐
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 尝试播放音乐
+                await backgroundMusic.play();
+                isMusicPlaying = true;
+                // 隐藏加载提示
+                setTimeout(() => {
+                    loadingOverlay.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 500);
+                }, 1000);
+            } catch (error) {
+                // 自动播放失败，显示开始按钮
+                startButton.addEventListener('click', startApp);
+            }
+        });
+        
+        // 开始应用
+        function startApp() {
+            backgroundMusic.play().catch(e => console.log('手动触发播放仍失败:', e));
+            isMusicPlaying = true;
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 500);
+        }
+
+        // 点击“可以”按钮显示“喜欢你”页面
+        yesButton.addEventListener('click', () => {
+            mainContent.classList.add('hidden');
+            yesContent.classList.remove('hidden');
+        });
+
+        noButton.addEventListener('click', () => {
+            if (imageIndex < 5) {
+                // 根据点击次数更换小猫图片
+                catImage.src = `images/cat-cry-${imageIndex + 1}.png`;
+                imageIndex++;
+            }
+
+            if (clickCount < maxClicks) {
+                // 放大“可以”按钮
+                const currentYesScale = parseFloat(yesButton.style.transform.replace('scale(', '').replace(')', '')) || 1;
+                const newYesScale = currentYesScale + 0.2;
+                yesButton.style.transform = `scale(${newYesScale})`;
+                yesButton.style.transition = 'transform 0.3s ease';
+
+                // 缩小“不要”按钮
+                const currentNoScale = parseFloat(noButton.style.transform.replace('scale(', '').replace(')', '')) || 1;
+                const newNoScale = currentNoScale - 0.1;
+                noButton.style.transform = `scale(${newNoScale})`;
+                noButton.style.transition = 'transform 0.3s ease';
+
+                // 调整按钮间距
+                const currentGap = parseFloat(getComputedStyle(buttonsContainer).gap);
+                const newGap = currentGap + 10;
+                buttonsContainer.style.gap = `${newGap}px`;
+
+                clickCount++;
+            } else if (clickCount === maxClicks) {
+                mainContent.classList.add('hidden');
+                confessionContent.classList.remove('hidden');
+                clickCount++;
+            }
+        });
+
+        // 关闭/开启音频按钮事件
+        muteButton.addEventListener('click', () => {
+            if (backgroundMusic.paused) {
+                backgroundMusic.play();
+                muteButton.textContent = '关闭音频';
+                isMusicPlaying = true;
+            } else {
+                backgroundMusic.pause();
+                muteButton.textContent = '开启音频';
+                isMusicPlaying = false;
+            }
+        });
+    </script>
+</body>
+</html>
